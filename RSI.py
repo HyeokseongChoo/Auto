@@ -11,6 +11,9 @@ secret = "SUELYxkqxK5upfRtL2ns089xJ4F32hlQkllgR73V"
 # 매수 가격을 저장할 딕셔너리
 bought_prices = {}
 
+# 코인 최소 구매 수량
+MIN_ORDER_QUANTITY = 5000
+
 def calculate_rsi(data, window=14):
     """RSI 계산"""
     diff = data.diff(1)
@@ -52,15 +55,16 @@ while True:
                 atr = calculate_atr(df)
                 if rsi.iloc[-1] < 35:  # RSI가 35 미만인 경우 매수
                     krw = upbit.get_balance("KRW")
-                    if krw > 5000:  # 최소 주문 금액 이상인지 확인
-                        buy_amount = krw * 0.5  # 잔고의 50%만 사용하여 매수
+                    if krw > MIN_ORDER_QUANTITY:  # 최소 주문 금액 이상인지 확인
+                        buy_amount = min(krw * 0.5, krw - MIN_ORDER_QUANTITY)  # 잔고의 50%만 사용하여 매수
                         adjusted_price = buy_amount / current_price  # 적정 매수 수량 계산
-                        upbit.buy_market_order(coin, adjusted_price)
-                        bought_prices[coin] = current_price  # 매수 시점의 현재가를 기록합니다.
+                        if adjusted_price >= MIN_ORDER_QUANTITY:
+                            upbit.buy_market_order(coin, adjusted_price)
+                            bought_prices[coin] = current_price  # 매수 시점의 현재가를 기록합니다.
         else:
             for coin in ["KRW-BTC", "KRW-XRP", "KRW-ETC", "KRW-SC", "KRW-ETH", "KRW-DOGE", "KRW-CHZ", "KRW-LOOM", "KRW-MTL", "KRW-GLM","KRW-HUNT","KRW-STX","KRW-PLA","KRW-SOL", "KRW-MATIC","KRW-SAND", "KRW-HIVE", "KRW-FLOW", "KRW-IOTA","KRW-BORA"]:
                 coin_balance = upbit.get_balance(coin.replace("KRW-", ""))
-                if coin_balance > 0.00008:
+                if coin_balance * current_price > MIN_ORDER_QUANTITY:
                     current_price = pyupbit.get_current_price(coin)
                     if coin in bought_prices:
                         profit_ratio = (current_price / bought_prices[coin]) - 1
