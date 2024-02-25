@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 
 # UPbit API 키
-access = "RJfrt03T5hX6GT6Jz9xBo4NUA50DZvf8KonwkKHO"
-secret = "b7alSrEOHHy5xtZfR0kwPEdDbAARTV14yxnsxg3w"
+access = ""
+secret = ""
 
 # 코인 최소 구매 수량
 MIN_ORDER_QUANTITY = 5000
