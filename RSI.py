@@ -1,22 +1,13 @@
-import time
 import pyupbit
 import datetime
-import numpy as np
-import pandas as pd
+import time
 
 # UPbit API 키
 access = ""
 secret = ""
 
-
 # UPbit 객체 생성
 upbit = pyupbit.Upbit(access, secret)
-
-def get_start_time(ticker):
-    """시작 시간 조회"""
-    df = pyupbit.get_ohlcv(ticker, interval="day", count=1)
-    start_time = df.index[0]
-    return start_time
 
 def get_balance():
     """잔고 조회"""
@@ -85,15 +76,26 @@ while True:
                     bought_prices[coin] = (current_price, buying_amount)
                     print(f"{coin} 매수 완료 - 매수 금액: {buying_amount}")
 
-        # 손절 체크
+        # 손절 및 익절 체크
         for coin, (buying_price, buying_amount) in list(bought_prices.items()):  # 리스트로 변환하여 변경 중 오류 방지
-            current_price = get_current_price(coin)
-            if current_price is not None:
-                if current_price <= buying_price * 0.96:  # 현재가가 매수가격의 4% 이하 하락 시 손절
-                    upbit.sell_market_order(coin, buying_amount)  # 보유량 전량 매도
-                    print(f"{coin} 손절 완료 - 손절 가격: {current_price}")
-                    banned_coins[coin] = now  # 해당 코인을 banned_coins에 추가하여 재매수 방지
-                    del bought_prices[coin]  # 손절한 코인 삭제
+            try:
+                current_price = get_current_price(coin)
+                rsi = calculate_rsi(pyupbit.get_ohlcv(coin, interval="minute60", count=14)['close'])
+                if current_price is not None and rsi is not None:
+                    # RSI가 70을 넘어가면 익절
+                    if rsi > 70:
+                        upbit.sell_market_order(coin, buying_amount)  # 보유량 전량 매도
+                        print(f"{coin} RSI 70 넘어서 익절 완료 - 현재 RSI: {rsi}")
+                        banned_coins[coin] = now  # 해당 코인을 banned_coins에 추가하여 재매수 방지
+                        del bought_prices[coin]  # 매도한 코인 삭제
+                    # 현재가가 매수가격의 4% 이하 하락 시 손절
+                    elif current_price <= buying_price * 0.96:
+                        upbit.sell_market_order(coin, buying_amount)  # 보유량 전량 매도
+                        print(f"{coin} 손절 완료 - 손절 가격: {current_price}")
+                        banned_coins[coin] = now  # 해당 코인을 banned_coins에 추가하여 재매수 방지
+                        del bought_prices[coin]  # 손절한 코인 삭제
+            except Exception as e:
+                print(f"Error occurred while checking stop-loss for {coin}: {e}")
 
         # 24시간 동안 거래하지 않은 코인을 banned_coins에서 삭제
         for coin, banned_time in banned_coins.copy().items():
