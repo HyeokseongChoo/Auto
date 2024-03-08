@@ -3,8 +3,8 @@ import datetime
 import time
 
 # UPbit API 키
-access = "9l8mPiSHbQzPpBmYYi8VLp6DQugEisRQcDathEy"
-secret = "J5MspX1xDLqk5W6snxjHP8liCITzMCnYuhrCfxB"
+access = " "
+secret = " "
 
 # UPbit 객체 생성
 upbit = pyupbit.Upbit(access, secret)
